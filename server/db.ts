@@ -1,4 +1,4 @@
-import { eq, desc, and, like, sql } from "drizzle-orm";
+import { eq, desc, and, like, sql, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
@@ -95,8 +95,24 @@ export async function approveKnowledgeEntry(id: number) {
 export async function searchKnowledge(query: string) {
   const db = await getDb();
   if (!db) return [];
+  // Search across title, content, and tags for better matching
+  const keywords = query.split(/\s+/).filter(k => k.length > 0);
+  if (keywords.length === 0) return [];
+  
+  // Build OR conditions for each keyword across title, content, and tags
+  const keywordConditions = keywords.map(keyword =>
+    or(
+      like(knowledgeBase.title, `%${keyword}%`),
+      like(knowledgeBase.content, `%${keyword}%`),
+      like(knowledgeBase.tags, `%${keyword}%`)
+    )
+  );
+  
   return db.select().from(knowledgeBase)
-    .where(and(eq(knowledgeBase.isApproved, true), like(knowledgeBase.content, `%${query}%`)))
+    .where(and(
+      eq(knowledgeBase.isApproved, true),
+      or(...keywordConditions)
+    ))
     .limit(20);
 }
 

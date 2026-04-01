@@ -90,12 +90,32 @@ export const appRouter = router({
         // Search knowledge base for context
         const keywords = input.message.split(/\s+/).slice(0, 5).join(" ");
         const kbResults = await db.searchKnowledge(keywords);
-        const knowledgeContext = kbResults.length > 0
-          ? kbResults.map(k => `【${k.title}】${k.content}`).join("\n\n")
-          : undefined;
 
-        // Call Q&A Agent
-        const result = await qaAgent(input.message, messages.slice(0, -1), knowledgeContext);
+        // Strategy: If knowledge base has matching results, return KB answer directly;
+        // otherwise fall back to LLM
+        if (kbResults.length > 0) {
+          // Build a comprehensive answer from knowledge base entries
+          const kbAnswer = kbResults.map(k => `### ${k.title}\n\n${k.content}`).join("\n\n---\n\n");
+          const finalContent = kbAnswer + "\n\n---\n\n> 此答案出自于知识库";
+
+          // Save assistant message
+          await db.addChatMessage(
+            input.conversationId,
+            "assistant",
+            finalContent,
+            "high",
+            JSON.stringify(kbResults.map(k => k.title))
+          );
+
+          return {
+            content: finalContent,
+            confidence: "high",
+            sources: kbResults.map(k => k.title),
+          };
+        }
+
+        // No knowledge base match, fall back to LLM
+        const result = await qaAgent(input.message, messages.slice(0, -1));
 
         // Save assistant message
         await db.addChatMessage(
@@ -103,7 +123,7 @@ export const appRouter = router({
           "assistant",
           result.content,
           result.confidence,
-          kbResults.length > 0 ? JSON.stringify(kbResults.map(k => k.title)) : undefined
+          undefined
         );
 
         // Add to low confidence queue if needed
@@ -114,7 +134,7 @@ export const appRouter = router({
         return {
           content: result.content,
           confidence: result.confidence,
-          sources: kbResults.map(k => k.title),
+          sources: [],
         };
       }),
   }),

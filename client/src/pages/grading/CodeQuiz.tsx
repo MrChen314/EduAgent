@@ -212,24 +212,12 @@ export default function CodeQuiz({ onBack }: { onBack: () => void }) {
             </div>
             <Progress value={currentResult.overallScore} className="h-2" />
 
-            {/* Complexity */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-muted rounded-lg flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div><p className="text-xs text-muted-foreground">时间复杂度</p><p className="text-sm font-bold">{currentResult.timeComplexity}</p></div>
-              </div>
-              <div className="p-3 bg-muted rounded-lg flex items-center gap-2">
-                <Database className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div><p className="text-xs text-muted-foreground">空间复杂度</p><p className="text-sm font-bold">{currentResult.spaceComplexity}</p></div>
-              </div>
-            </div>
-
             {/* Dimension Scores */}
-            {currentResult.dimensions && currentResult.dimensions.length > 0 && (
+            {currentResult.dimensions && currentResult.dimensions.filter(dim => dim.name && dim.maxScore > 0).length > 0 && (
               <div>
                 <p className="text-sm font-medium mb-2">各维度评分</p>
                 <div className="space-y-2">
-                  {currentResult.dimensions.map((dim, i) => (
+                  {currentResult.dimensions.filter(dim => dim.name && dim.maxScore > 0).map((dim, i) => (
                     <div key={i} className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-medium">{dim.name}</span>
@@ -242,6 +230,18 @@ export default function CodeQuiz({ onBack }: { onBack: () => void }) {
                 </div>
               </div>
             )}
+
+            {/* Complexity */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-muted rounded-lg flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div><p className="text-xs text-muted-foreground">时间复杂度</p><p className="text-sm font-bold">{currentResult.timeComplexity}</p></div>
+              </div>
+              <div className="p-3 bg-muted rounded-lg flex items-center gap-2">
+                <Database className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div><p className="text-xs text-muted-foreground">空间复杂度</p><p className="text-sm font-bold">{currentResult.spaceComplexity}</p></div>
+              </div>
+            </div>
 
             {/* Errors */}
             {currentResult.syntaxErrors.length > 0 && (
